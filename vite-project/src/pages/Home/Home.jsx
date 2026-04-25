@@ -1,108 +1,93 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import MasonryGrid from "../../Components/MasonryGrid/MasonryGrid";
+import usePinsFeed from "../../hooks/usePinsFeed";
+import useInfiniteScroll from "../../hooks/useInfiniteScroll";
+import { categories } from "../../data/categories";
 import styles from "./Home.module.css";
 
-const API_KEY = import.meta.env.VITE_PEXELS_API_KEY;
+function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = searchParams.get("category") || "All";
+  const searchTerm = searchParams.get("q") || "";
 
-const categories = [
-  "All",
-  "Nature",
-  "Fashion",
-  "Travel",
-  "Art",
-  "Food",
-  "Technology",
-  "People",
-  "Animals",
-  "Architecture",
-];
+  const { pins, error, loadingInitial, loadingMore, hasMore, loadMore, retry } = usePinsFeed({
+    searchTerm,
+    activeCategory,
+    perPage: 24,
+  });
 
-export default function Home({ search }) {
-  const [images, setImages] = useState([]);
-  const [category, setCategory] = useState("All");
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
+  const sentinelRef = useInfiniteScroll({
+    enabled: true,
+    loading: loadingMore,
+    hasMore,
+    onLoadMore: loadMore,
+  });
 
-  async function fetchImages(query = "All", pageNumber = 1, append = false) {
-    try {
-      setLoading(true);
-      const finalQuery =
-        search.trim() !== ""
-          ? search
-          : query === "All"
-          ? "trending"
-          : query;
-      const url =
-        query === "All" && search.trim() === ""
-          ? `https://api.pexels.com/v1/curated?per_page=30&page=${pageNumber}`
-          : `https://api.pexels.com/v1/search?query=${encodeURIComponent(finalQuery)}&per_page=30&page=${pageNumber}`;
-      const res = await fetch(url, {headers: {Authorization: API_KEY,},});
-      const data = await res.json();
-      const photos = data.photos || [];
+  const sidebarCategories = useMemo(() => categories.slice(1), []);
 
-      if(append) {
-        setImages((prev) => [...prev, ...photos]);
-      }else{
-        setImages(photos);
-      }
-    }catch(err){
-      console.error("Failed to fetch images:", err);
-    }finally{
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    setPage(1);
-    fetchImages(category, 1, false);
-  },[category]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      fetchImages(category, 1, false);
-    }, 500);
-    return () => clearTimeout(timer);
-  },[search]);
-
-  function handleLoadMore() {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchImages(category, nextPage, true);
+  function onCategoryChange(nextCategory) {
+    const params = new URLSearchParams(searchParams);
+    if (nextCategory === "All") params.delete("category");
+    else params.set("category", nextCategory);
+    setSearchParams(params);
   }
 
   return (
     <main className={styles.page}>
-      <div className={styles.categoryBar}>
-        {categories.map((cat) => (
-          <button key={cat} className={category === cat ? `${styles.categoryBtn} ${styles.activeCategoryBtn}`: styles.categoryBtn} onClick={() => setCategory(cat)}>{cat}
-          </button>
-        ))}
-      </div>
-      {loading && images.length === 0 && (
-        <p className={styles.message}>Loading images...</p>
-      )}
-      {!loading && images.length === 0 && (
-        <p className={styles.message}>No images found.</p>
-      )}
-      <div className={styles.masonry}>
-        {images.map((img) => (
-          <div key={img.id} className={styles.card}>
-            <img
-              src={img.src.large}
-              alt={img.alt || "Pexels image"}
-              className={styles.cardImage}/>
-          </div>
-        ))}
-      </div>
-      {images.length > 0 && (
-        <div className={styles.loadMoreWrap}>
+      <aside className={styles.sidebar}>
+        <h2 className={styles.sidebarTitle}>Trends</h2>
+        {sidebarCategories.map((category) => (
           <button
-            className={styles.loadMoreBtn}
-            onClick={handleLoadMore}
-            disabled={loading}>
-            {loading ? "Loading..." : "Load More"}
+            key={category}
+            type="button"
+            className={`${styles.sidebarItem} ${
+              activeCategory === category ? styles.sidebarItemActive : ""
+            }`}
+            onClick={() => onCategoryChange(category)}
+          >
+            {category}
           </button>
-        </div>
-      )}
+        ))}
+      </aside>
+
+      <section className={styles.content}>
+        <p className={styles.queryText}>
+          {searchTerm
+            ? `Results for "${searchTerm}"${activeCategory !== "All" ? ` in ${activeCategory}` : ""}`
+            : `Showing ${activeCategory} inspiration`}
+        </p>
+
+        {error && (
+          <div className={styles.errorBox}>
+            <p>{error}</p>
+            <button type="button" onClick={retry}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {loadingInitial ? (
+          <div className={styles.skeletonGrid}>
+            {Array.from({ length: 12 }).map((_, index) => (
+              <div key={index} className={styles.skeletonCard} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <MasonryGrid items={pins} />
+            {!pins.length && !error && (
+              <p className={styles.emptyState}>No pins found. Try another search or category.</p>
+            )}
+          </>
+        )}
+
+        <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
+        {loadingMore && <p className={styles.message}>Loading more ideas...</p>}
+        {!hasMore && pins.length > 0 && (
+          <p className={styles.message}>You reached the end of this feed.</p>
+        )}
+      </section>
     </main>
   );
 }
