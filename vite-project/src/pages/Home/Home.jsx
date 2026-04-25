@@ -1,114 +1,94 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import MasonryGrid from "../../Components/MasonryGrid/MasonryGrid";
+import usePinsFeed from "../../hooks/usePinsFeed";
+import useInfiniteScroll from "../../hooks/useInfiniteScroll";
+import { categories } from "../../data/categories";
 import styles from "./Home.module.css";
 
-const API_KEY = import.meta.env.VITE_PEXELS_API_KEY;
-
-const categories = [
-  "All",
-  "Nature",
-  "Fashion",
-  "Travel",
-  "Art",
-  "Food",
-  "Technology",
-  "People",
-  "Animals",
-  "Architecture",
-];
-
 function Home() {
-  const [images, setImages] = useState([]);
-  const [category, setCategory] = useState("All");
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = searchParams.get("category") || "All";
+  const searchTerm = searchParams.get("q") || "";
 
-  // FETCH FUNCTION
-  const fetchImages = async (query = "All", pageNum = 1) => {
-    try {
-      setLoading(true);
+  const { pins, error, loadingInitial, loadingMore, hasMore, loadMore, retry } = usePinsFeed({
+    searchTerm,
+    activeCategory,
+    perPage: 24,
+  });
 
-      const url =
-        query === "All"
-          ? `https://api.pexels.com/v1/curated?per_page=30&page=${pageNum}`
-          : `https://api.pexels.com/v1/search?query=${query}&per_page=30&page=${pageNum}`;
+  const sentinelRef = useInfiniteScroll({
+    enabled: true,
+    loading: loadingMore,
+    hasMore,
+    onLoadMore: loadMore,
+  });
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: API_KEY,
-        },
-      });
+  const sidebarCategories = useMemo(() => categories.slice(1), []);
 
-      const data = await res.json();
-
-      // 🔥 IMPORTANT: append data (not replace)
-      if (pageNum === 1) {
-        setImages(data.photos || []);
-      } else {
-        setImages((prev) => [...prev, ...(data.photos || [])]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // CATEGORY CHANGE
-  useEffect(() => {
-    setPage(1);
-    fetchImages(category, 1);
-  }, [category]);
-
-  // LOAD MORE
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchImages(category, nextPage);
-  };
+  function onCategoryChange(nextCategory) {
+    const params = new URLSearchParams(searchParams);
+    if (nextCategory === "All") params.delete("category");
+    else params.set("category", nextCategory);
+    setSearchParams(params);
+  }
 
   return (
-    <div className={styles.page}>
-      {/* CATEGORY */}
-      <div className={styles.categoryBar}>
-        {categories.map((cat) => (
+    <main className={styles.page}>
+      <aside className={styles.sidebar}>
+        <h2 className={styles.sidebarTitle}>Trends</h2>
+        {sidebarCategories.map((category) => (
           <button
-            key={cat}
-            className={
-              category === cat
-                ? styles.activeCategoryBtn
-                : styles.categoryBtn
-            }
-            onClick={() => setCategory(cat)}
+            key={category}
+            type="button"
+            className={`${styles.sidebarItem} ${
+              activeCategory === category ? styles.sidebarItemActive : ""
+            }`}
+            onClick={() => onCategoryChange(category)}
           >
-            {cat}
+            {category}
           </button>
         ))}
-      </div>
+      </aside>
 
-      {/* GRID */}
-      <div className={styles.masonry}>
-        {images.map((img) => (
-          <div key={img.id} className={styles.card}>
-            <img
-              src={img.src.large}
-              alt={img.alt}
-              className={styles.cardImage}
-            />
+      <section className={styles.content}>
+        <p className={styles.queryText}>
+          {searchTerm
+            ? `Results for "${searchTerm}"${activeCategory !== "All" ? ` in ${activeCategory}` : ""}`
+            : `Showing ${activeCategory} inspiration`}
+        </p>
+
+        {error && (
+          <div className={styles.errorBox}>
+            <p>{error}</p>
+            <button type="button" onClick={retry}>
+              Retry
+            </button>
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* LOAD MORE BUTTON */}
-      <div className={styles.loadMoreWrap}>
-        <button
-          className={styles.loadMoreBtn}
-          onClick={handleLoadMore}
-          disabled={loading}
-        >
-          {loading ? "Loading..." : "Load More"}
-        </button>
-      </div>
-    </div>
+        {loadingInitial ? (
+          <div className={styles.skeletonGrid}>
+            {Array.from({ length: 12 }).map((_, index) => (
+              <div key={index} className={styles.skeletonCard} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <MasonryGrid items={pins} />
+            {!pins.length && !error && (
+              <p className={styles.emptyState}>No pins found. Try another search or category.</p>
+            )}
+          </>
+        )}
+
+        <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
+        {loadingMore && <p className={styles.message}>Loading more ideas...</p>}
+        {!hasMore && pins.length > 0 && (
+          <p className={styles.message}>You reached the end of this feed.</p>
+        )}
+      </section>
+    </main>
   );
 }
 
