@@ -1,0 +1,52 @@
+.page {
+  min-height: 100vh;
+  background: #f7f8fb;
+  padding: 34px 20px;
+}
+
+.container {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.heading {
+  font-size: 34px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 22px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(17, 24, 39, 0.07);
+}
+
+.thumb {
+  width: 74px;
+  height: 74px;
+  border-radius: 18px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.info h3 {
+  font-size: 18px;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.info p {
+  color: #6b7280;
+  font-size: 14px;
+}
