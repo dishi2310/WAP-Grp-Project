@@ -1,32 +1,34 @@
 import { Link, useNavigate } from "react-router-dom";
-import styles from "./Login.module.css";
+import styles from "./Signup.module.css";
 
-function Login() {
+function Signup() {
   const navigate = useNavigate();
 
   function handleSubmit(event) {
     event.preventDefault();
-    // Mock auth to keep UX functional until backend auth is introduced.
+    const name = event.target[0].value;
     localStorage.setItem("pixora_auth", "true");
+    localStorage.setItem("pixora_user_name", name);
     navigate("/");
   }
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Login</h1>
-        <p className={styles.subtitle}>Welcome back to PinUI</p>
+        <h1 className={styles.title}>Create account</h1>
+        <p className={styles.subtitle}>Join PinUI and start saving ideas</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
+          <input type="text" placeholder="Full name" className={styles.input} required />
           <input type="email" placeholder="Email" className={styles.input} required />
           <input type="password" placeholder="Password" className={styles.input} required />
           <button type="submit" className={styles.primaryBtn}>
-            Login
+            Sign Up
           </button>
         </form>
 
         <p className={styles.bottomText}>
-          Don't have an account? <Link to="/signup">Sign Up</Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
 
         <Link to="/" className={styles.backLink}>
@@ -37,4 +39,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Signup;

@@ -1,0 +1,73 @@
+.page {
+  min-height: 100vh;
+  background: #f7f8fb;
+  padding-bottom: 40px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 44px 20px 24px;
+  text-align: center;
+}
+
+.avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+  box-shadow: 0 16px 32px rgba(17, 24, 39, 0.12);
+}
+
+.name {
+  font-size: 34px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.bio {
+  color: #6b7280;
+  font-size: 16px;
+  margin-bottom: 18px;
+}
+
+.editBtn {
+  border: none;
+  background: #111827;
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.tab {
+  border: none;
+  background: #eceff3;
+  color: #111827;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.active {
+  background: #111827;
+  color: #fff;
+}
+
+.gridWrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
